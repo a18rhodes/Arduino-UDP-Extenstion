@@ -1,36 +1,17 @@
 #include "AKR_UDP.h"
 // #define DEBUG
 
-void OTA(WiFiUDP Udp, IPAddress ip, unsigned int port, String node, float version){
-    char recv_buf[255];
-    udpSendPacket(Udp, ip, port, String("REQ:") + node);
-    unsigned long wifiAckStart = millis();
-    while(!Udp.parsePacket()){
-        if (millis() - wifiAckStart > 10000) {
-        #ifdef DEBUG
-            Serial.println("Failed to receive version number in 10 seconds.");
-        #endif
-            return;
-        }
-        delay(100);
-        yield();
-    }
-    uint8_t len = Udp.read(recv_buf, 255);
-    if(len > 0){
-        recv_buf[len] = 0;
-    }
-    #ifdef DEBUG
-        Serial.println(recv_buf);
-    #endif
-    if (String(recv_buf).toFloat() > version){
-        udpSendPacket(Udp, ip, port, String(PULL)+node);
-        unsigned long otastart = millis();
-        while(millis() - otastart <= 30000){
-            ArduinoOTA.handle();
-            delay(100);
-            yield();
-        }
-    }
+void OTA(WiFiUDP Udp, IPAddress ip, unsigned int port, String node, float version, char * cpCmd){
+  if(cpCmd[0] != 'P' || cpCmd[1] != 'U' || cpCmd[2] != 'S' || cpCmd[3] != 'H'){
+    return;
+  }
+  unsigned long otastart = millis();
+  while(millis() - otastart <= 30000){
+      ArduinoOTA.handle();
+      delay(100);
+      yield();
+  }
+  return;
 }
 
 int udpSendPacket(WiFiUDP Udp, IPAddress ip, unsigned int port, String data){
@@ -56,8 +37,7 @@ int udpSendPacket(WiFiUDP Udp, IPAddress ip, unsigned int port, String data){
   return 1;
 }
 
-
-int updVerifiedSendPacket(WiFiUDP Udp, IPAddress ip, unsigned int port, String data, char caRecvBuf[255]) {
+int updVerifiedSendPacket(WiFiUDP Udp, IPAddress ip, unsigned int port, String data, char caRecvBuf[255], char caCmdBuf[5]) {
   uint8_t len = data.length() + 1;
   char buf[len];
   data.toCharArray(buf, len);
@@ -94,8 +74,18 @@ int updVerifiedSendPacket(WiFiUDP Udp, IPAddress ip, unsigned int port, String d
   Serial.println("ACKED");
 #endif
   uint8_t uiPacketLen = Udp.read(caRecvBuf, 255);
+  uint8_t colonIdx = uiPacketLen;
   if(uiPacketLen > 0){
-      caRecvBuf[uiPacketLen + 1] = 0;
+      for(uint8_t i = uiPacketLen; i >= 0; i--){
+          if (caRecvBuf[i] == ':'){
+              colonIdx = i;
+              break;
+          }
+      }
+      for(uint8_t i = colonIdx + 1, j = 0; i < uiPacketLen; i++, j++){
+        caCmdBuf[j] = caRecvBuf[i];
+        caRecvBuf[i] = 0;
+      }
   }
   return 1;
 }
@@ -114,6 +104,7 @@ void connect(char ssid[], char pass[]) {
   WiFi.mode(WIFI_OFF);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, pass);
+  WiFi.setSleepMode(WIFI_LIGHT_SLEEP);
 
   unsigned long wifiConnectStart = millis();
 
@@ -143,4 +134,3 @@ void connect(char ssid[], char pass[]) {
     Serial.println(" dBm");
   #endif
 }
- 

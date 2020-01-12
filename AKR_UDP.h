@@ -13,8 +13,8 @@
 #define UTD "UTD"
 
 int udpSendPacket(WiFiUDP Udp, IPAddress ip, unsigned int port, String data);
-int updVerifiedSendPacket(WiFiUDP Udp, IPAddress ip, unsigned int port, String data, char caRecvBuf[255]);
+int updVerifiedSendPacket(WiFiUDP Udp, IPAddress ip, unsigned int port, String data, char caRecvBuf[255], char caCmdBuf[5]);
 void connect(char ssid[], char pass[]);
-void OTA(WiFiUDP Udp, IPAddress ip, unsigned int port, String node, float version);
+void OTA(WiFiUDP Udp, IPAddress ip, unsigned int port, String node, float version, char * cpCmd);
 
 #endif
