@@ -97,7 +97,9 @@ void connect(char ssid[], char pass[]) {
     Serial.print("Connecting to ");
     Serial.println(ssid);
   #endif
-  WiFi.begin(ssid, pass);
+  // WiFi will be in sleep state upon deepsleep exit, so wake it https://bit.ly/384MFxP
+  WiFi.forceSleepWake();
+  yield();
 
   // WiFi fix: https://github.com/esp8266/Arduino/issues/2186
   WiFi.persistent(false);
